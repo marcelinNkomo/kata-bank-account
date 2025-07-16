@@ -1,53 +1,44 @@
 package com.sg.bank_account_api.utils;
 
+import com.sg.bank_account_api.dto.AccountDto;
+import com.sg.bank_account_api.dto.ClientDto;
+import com.sg.bank_account_api.dto.StatementDto;
+import com.sg.bank_account_api.model.Account;
+import com.sg.bank_account_api.model.Client;
+import com.sg.bank_account_api.model.Statement;
+import org.springframework.stereotype.Component;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.stereotype.Component;
-
-import com.sg.bank_account_api.dto.AccountDto;
-import com.sg.bank_account_api.dto.ClientDto;
-import com.sg.bank_account_api.model.Account;
-import com.sg.bank_account_api.model.Client;
-import com.sg.bank_account_api.model.Statement;
-import com.sg.bank_account_api.model.Transaction;
-
 @Component
 public class DtoMapper {
 
-    public Statement toStatement(Transaction transaction) {
-        validate(transaction, Transaction.class);
-        return new Statement(transaction.getDate(), transaction.getAmount(), transaction.getBalance());
-    }
-
-    public List<Statement> toStatementList(List<Transaction> transactions) {
-        if (transactions == null) {
-            return Collections.emptyList();
-        }
-        return transactions.stream()
-                .map(this::toStatement)
-                .collect(Collectors.toList());
-    }
-
     public AccountDto accountToDto(Account account) {
         validate(account, Account.class);
-
         return new AccountDto(
-                clientToDto(account.getClient()),
-                account.getBalance(),
-                account.getDate(),
-                toStatementList(account.getTransactions()));
+                clientToDto(account.client()),
+                account.balance(),
+                account.date(),
+                toStatementDtoList(account.statements()));
     }
 
-    public Client dtoToClient(ClientDto dto) {
-        validate(dto, ClientDto.class);
-        return new Client(dto.lastname(), dto.firstname());
+    public StatementDto statementToDto(Statement statement) {
+        validate(statement, Statement.class);
+        return new StatementDto(statement.date(), statement.amount(), statement.balance());
+    }
+
+    public List<StatementDto> toStatementDtoList(List<Statement> statements) {
+        if (statements == null) {
+            return Collections.emptyList();
+        }
+        return statements.stream().map(this::statementToDto).collect(Collectors.toList());
     }
 
     public ClientDto clientToDto(Client client) {
         validate(client, Client.class);
-        return new ClientDto(client.getLastName(), client.getFirstName());
+        return new ClientDto(client.id(), client.lastName(), client.firstName(), client.date());
     }
 
     private void validate(Object obj, Class<?> type) {

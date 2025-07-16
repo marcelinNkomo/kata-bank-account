@@ -1,27 +1,29 @@
 package com.sg.bank_account_api.service;
 
-import java.math.BigDecimal;
-
-import org.springframework.stereotype.Service;
-
+import com.sg.bank_account_api.dto.CreateClientDto;
+import com.sg.bank_account_api.dto.CreateTransactionDto;
 import com.sg.bank_account_api.dto.CreatedAccountDto;
-import com.sg.bank_account_api.dto.TransactionDto;
+import com.sg.bank_account_api.dto.StatementDto;
 import com.sg.bank_account_api.exceptions.AccountNotFoundException;
 import com.sg.bank_account_api.exceptions.AmountException;
 import com.sg.bank_account_api.exceptions.ClientNotFoundException;
 import com.sg.bank_account_api.model.Account;
 import com.sg.bank_account_api.model.Client;
-import com.sg.bank_account_api.model.Transaction;
+import com.sg.bank_account_api.model.Statement;
 import com.sg.bank_account_api.model.TransactionType;
 import com.sg.bank_account_api.repository.AccountRepository;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
 
 /**
  * Classe qui gèrer toute la logique associée à un compte
  */
-@RequiredArgsConstructor
 @Service
+@RequiredArgsConstructor
 public final class AccountService implements IAccountService {
 
     // Dépendances
@@ -30,34 +32,35 @@ public final class AccountService implements IAccountService {
     private final ClientService clientService;
 
     @Override
-    public CreatedAccountDto createAccount(Client client) {
+    public CreatedAccountDto createAccount(CreateClientDto createClientDto) {
         // création du client
-        Client createdClient = clientService.createClient(client);
+        Client createdClient = clientService.createClient(createClientDto);
 
         // Création du compte pour le client
-        Account newAccount = accountRepository.save(new Account(createdClient));
+        Account accountToCreate = new Account(null, BigDecimal.ZERO, createdClient, LocalDate.now(), new ArrayList<>());
+        Account createdAccount = accountRepository.save(accountToCreate);
 
-        return new CreatedAccountDto(newAccount.getId(), createdClient.getId());
+        return new CreatedAccountDto(createdAccount.id(), createdClient.id());
     }
 
     @Override
-    public Transaction performTransaction(TransactionDto dto, TransactionType type) {
+    public StatementDto performTransaction(CreateTransactionDto dto, TransactionType type) {
         // récupération du compte à patir de l'indentifiant
         Account existingAccount = getAccountById(dto.accountId());
 
         // extraction du client
-        Client client = existingAccount.getClient();
+        Client client = existingAccount.client();
 
         // on vérifie qu'on peut effectuer la transaction avec le montant renseigné
-        validateAmount(dto.amount(), type, existingAccount.getBalance());
+        validateAmount(dto.amount(), type, existingAccount.balance());
 
         // on vérifie que le compte appartient bien au client
         validateClientForAccount(dto.clientId(), dto.accountId(), client);
 
         // On créé la transaction et on l'ajoute au compte
-        Transaction transaction = createTransactionAndUpdateAccount(type, dto.amount(), existingAccount);
+        Statement statement = createTransactionAndUpdateAccount(type, dto.amount(), existingAccount);
 
-        return transaction;
+        return new StatementDto(statement.date(), statement.amount(), statement.balance());
     }
 
     @Override
@@ -69,16 +72,14 @@ public final class AccountService implements IAccountService {
     }
 
     @Override
-    public void updateAcount(Account account) {
+    public Account updateAcount(Account account) {
         // on met à jout le compte
-        if (account != null) {
-            accountRepository.save(account);
-        }
+        return accountRepository.save(account);
     }
 
     /**
      * Methode qui permet de vérifier la validité du montant
-     * 
+     *
      * @param amount
      * @param type
      * @param balance
@@ -97,41 +98,50 @@ public final class AccountService implements IAccountService {
 
     /**
      * Methode qui permet de créer un transaction
-     * 
+     *
      * @param type
      * @param amount
      * @param existingAccount
      * @return
      */
-    private Transaction createTransactionAndUpdateAccount(TransactionType type, BigDecimal amount,
-            Account existingAccount) {
+    private Statement createTransactionAndUpdateAccount(TransactionType type, BigDecimal amount,
+                                                        Account existingAccount) {
         // si c'est un retrait, le montant devient gégatif
         BigDecimal transactionAmount = TransactionType.WITHDRAW.equals(type) ? amount.negate() : amount;
         // on met à jour solde
-        BigDecimal newBalance = existingAccount.getBalance().add(transactionAmount);
+        BigDecimal newBalance = existingAccount.balance().add(transactionAmount);
         // création de la transaction
-        Transaction transaction = new Transaction(transactionAmount, newBalance);
+        Statement statement = new Statement(LocalDate.now(), transactionAmount, newBalance);
 
         // on met à jour le compte avec le nouveau solde et la nouvelle transaction
-        existingAccount.setBalance(newBalance);
-        existingAccount.getTransactions().add(transaction);
-        updateAcount(existingAccount);
+        existingAccount.statements().add(statement);
 
-        return transaction;
+        Account accountToUpate = new Account(
+                existingAccount.id(),
+                newBalance,
+                existingAccount.client(),
+                existingAccount.date(),
+                existingAccount.statements());
+
+        updateAcount(accountToUpate);
+
+        return statement;
     }
 
     /**
      * Methode qui permet de vérier que le le compte est bien celui du client
-     * 
+     *
      * @param clientId
      * @param accountId
      * @param client
      */
     private void validateClientForAccount(String clientId, String accountId, Client client) {
-        if (!client.getId().equals(clientId)) {
+        if (!client.id().equals(clientId)) {
             final String msg = String.format("Client with id %s is not associated with account %s", clientId,
                     accountId);
             throw new ClientNotFoundException(msg);
         }
     }
 }
+
+

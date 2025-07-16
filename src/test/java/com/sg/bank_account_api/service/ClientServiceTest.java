@@ -1,87 +1,111 @@
 package com.sg.bank_account_api.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-
+import com.sg.bank_account_api.dto.CreateClientDto;
+import com.sg.bank_account_api.exceptions.AmountException;
+import com.sg.bank_account_api.model.Client;
+import com.sg.bank_account_api.repository.ClientRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.sg.bank_account_api.exceptions.AmountException;
-import com.sg.bank_account_api.model.Client;
-import com.sg.bank_account_api.repository.ClientRepository;
+import java.time.LocalDate;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class ClientServiceTest {
-
+class ClientServiceTest {
     @Mock
-    private ClientRepository repository;
+    private ClientRepository clientRepository;
 
     @InjectMocks
-    private ClientService service;
+    private ClientService clientService;
 
-    /**
-     * createClient
-     */
-    @Test
-    void createClientShouldThrowExceptionWhenGivenIsNull() {
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
-                () -> service.createClient(null));
-        assertThat(thrown).hasMessage("Client can't be null and should have either lastname or fisrtname");
+    private CreateClientDto createClientDto;
+    private Client savedClient;
+
+    @BeforeEach
+    void setUp() {
+        createClientDto = new CreateClientDto("Doe", "John");
+        savedClient = new Client("client123", "Doe", "John", LocalDate.now());
     }
 
     @Test
-    void createClientShouldThrowExceptionWhenClientInfosAreNotValide() {
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
-                () -> service.createClient(new Client()));
-        assertThat(thrown).hasMessage("Client can't be null and should have either lastname or fisrtname");
+    @DisplayName("Should create client successfully")
+    void shouldCreateClientSuccessfully() {
+        when(clientRepository.save(any(Client.class))).thenReturn(savedClient);
+
+        Client result = clientService.createClient(createClientDto);
+
+        assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo("client123");
+        assertThat(result.lastName()).isEqualTo("Doe");
+        assertThat(result.firstName()).isEqualTo("John");
+        verify(clientRepository, times(1)).save(any(Client.class));
     }
 
     @Test
-    void createClientShouldReturnCreatedClient() {
-        // Given
-        Client newClient = new Client("Wick", "John");
-        when(repository.save(any(Client.class))).thenReturn(newClient);
+    @DisplayName("Should throw IllegalArgumentException when creating client with null DTO")
+    void shouldThrowIllegalArgumentExceptionWhenCreateClientWithNullDto() {
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
+                clientService.createClient(null));
 
-        // when
-        Client createdClient = service.createClient(newClient);
-
-        // Then
-        assertThat(newClient).isEqualTo(createdClient);
-    }
-
-    /**
-     * getClientById
-     */
-    @Test
-    void getClientByIdShouldThrowException_whenClientNotFoundForGivenId() {
-        // Given
-        when(repository.findById(anyString())).thenReturn(Optional.empty());
-
-        // When
-        AmountException thrown = assertThrows(AmountException.class,
-                () -> service.getClientById("fake_id"));
-        assertThat(thrown).hasMessage("Client not found for ID : fake_id");
+        assertThat(thrown.getMessage()).contains("Client can't be null and should have either lastname or fisrtname");
+        verify(clientRepository, never()).save(any(Client.class));
     }
 
     @Test
-    void getClientByIdShouldClient_whenExist() {
-        // Given
-        Client expectedClient = new Client("Bauer", "Jack");
-        when(repository.findById(anyString())).thenReturn(Optional.of(expectedClient));
+    @DisplayName("Should throw IllegalArgumentException when creating client with blank lastname")
+    void shouldThrowIllegalArgumentExceptionWhenCreateClientWithBlankLastname() {
+        CreateClientDto invalidDto = new CreateClientDto("", "John");
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
+                clientService.createClient(invalidDto));
 
-        // When
-        Client existingClient = service.getClientById("A007");
-
-        // Then
-        assertThat(existingClient).isEqualTo(expectedClient);
+        assertThat(thrown.getMessage()).contains("Client can't be null and should have either lastname or fisrtname");
+        verify(clientRepository, never()).save(any(Client.class));
     }
 
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when creating client with blank firstname")
+    void shouldThrowIllegalArgumentExceptionWhenCreateClientWithBlankFirstname() {
+        CreateClientDto invalidDto = new CreateClientDto("Doe", "");
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
+                clientService.createClient(invalidDto));
+
+        assertThat(thrown.getMessage()).contains("Client can't be null and should have either lastname or fisrtname");
+        verify(clientRepository, never()).save(any(Client.class));
+    }
+
+    @Test
+    @DisplayName("Should retrieve client by ID successfully")
+    void shouldGetClientByIdSuccessfully() {
+        when(clientRepository.findById("client123")).thenReturn(Optional.of(savedClient));
+
+        Client result = clientService.getClientById("client123");
+
+        assertThat(result).isEqualTo(savedClient);
+        verify(clientRepository, times(1)).findById("client123");
+    }
+
+    @Test
+    @DisplayName("Should throw AmountException when client by ID not found")
+    void shouldThrowAmountExceptionWhenGetClientByIdNotFound() {
+        when(clientRepository.findById("nonExistentClient")).thenReturn(Optional.empty());
+
+        AmountException thrown = assertThrows(AmountException.class, () ->
+                clientService.getClientById("nonExistentClient"));
+
+        assertThat(thrown.getMessage()).contains("Client not found for ID : nonExistentClient");
+        verify(clientRepository, times(1)).findById("nonExistentClient");
+    }
 }

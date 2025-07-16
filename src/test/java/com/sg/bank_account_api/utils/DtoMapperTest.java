@@ -1,120 +1,145 @@
 package com.sg.bank_account_api.utils;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-
 import com.sg.bank_account_api.dto.AccountDto;
 import com.sg.bank_account_api.dto.ClientDto;
+import com.sg.bank_account_api.dto.StatementDto;
 import com.sg.bank_account_api.model.Account;
 import com.sg.bank_account_api.model.Client;
 import com.sg.bank_account_api.model.Statement;
-import com.sg.bank_account_api.model.Transaction;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
-@ExtendWith(MockitoExtension.class)
-public class DtoMapperTest {
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
-    private DtoMapper mapper;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class DtoMapperTest {
+    private DtoMapper dtoMapper;
 
     @BeforeEach
-    void setup() {
-        mapper = new DtoMapper();
+    void setUp() {
+        dtoMapper = new DtoMapper();
     }
 
     @Test
-    void toStatement_shouldMapCorrectly() {
-        Transaction transaction = new Transaction(BigDecimal.valueOf(100), BigDecimal.valueOf(500));
-        Statement statement = mapper.toStatement(transaction);
+    @DisplayName("Should map Account to AccountDto successfully")
+    void shouldMapAccountToAccountDtoSuccessfully() {
+        Account account = getAccount();
 
-        assertEquals(transaction.getDate(), statement.date());
-        assertEquals(transaction.getAmount(), statement.amount());
-        assertEquals(transaction.getBalance(), statement.balance());
+        AccountDto accountDto = dtoMapper.accountToDto(account);
+
+        assertThat(accountDto).isNotNull();
+        assertThat(accountDto.balance()).isEqualTo(BigDecimal.valueOf(130));
+        assertThat(accountDto.date()).isEqualTo(LocalDate.of(2023, 1, 5));
+
+        assertThat(accountDto.client()).isNotNull();
+        assertThat(accountDto.client().id()).isEqualTo("client123");
+        assertThat(accountDto.client().lastName()).isEqualTo("Doe");
+        assertThat(accountDto.client().firstName()).isEqualTo("John");
+
+        assertThat(accountDto.statements()).hasSize(2);
+        assertThat(accountDto.statements().get(0).amount()).isEqualTo(BigDecimal.valueOf(50));
+        assertThat(accountDto.statements().get(1).balance()).isEqualTo(BigDecimal.valueOf(130));
     }
 
     @Test
-    void toStatement_shouldThrowException_whenTransactionIsNull() {
-        assertThrows(IllegalArgumentException.class, () -> mapper.toStatement(null));
+    @DisplayName("Should throw IllegalArgumentException when mapping null Account to AccountDto")
+    void shouldThrowIllegalArgumentExceptionWhenMappingNullAccountToAccountDto() {
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
+                dtoMapper.accountToDto(null));
+
+        assertThat(thrown.getMessage()).contains("Account can't be null");
     }
 
     @Test
-    void toStatementList_shouldReturnEmptyList_whenInputIsNull() {
-        List<Statement> result = mapper.toStatementList(null);
-        assertTrue(result.isEmpty());
+    @DisplayName("Should map Statement to StatementDto successfully")
+    void shouldMapStatementToStatementDtoSuccessfully() {
+        Statement statement = new Statement(LocalDate.of(2024, 2, 1), BigDecimal.valueOf(200), BigDecimal.valueOf(300));
+
+        StatementDto statementDto = dtoMapper.statementToDto(statement);
+
+        assertThat(statementDto).isNotNull();
+        assertThat(statementDto.date()).isEqualTo(LocalDate.of(2024, 2, 1));
+        assertThat(statementDto.amount()).isEqualTo(BigDecimal.valueOf(200));
+        assertThat(statementDto.balance()).isEqualTo(BigDecimal.valueOf(300));
     }
 
     @Test
-    void toStatementList_shouldMapAllTransactions() {
-        List<Transaction> transactions = List.of(
-                new Transaction(BigDecimal.valueOf(50), BigDecimal.valueOf(100)),
-                new Transaction(LocalDate.now().minusDays(1), BigDecimal.valueOf(25), BigDecimal.valueOf(75)));
+    @DisplayName("Should throw IllegalArgumentException when mapping null Statement to StatementDto")
+    void shouldThrowIllegalArgumentExceptionWhenMappingNullStatementToStatementDto() {
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
+                dtoMapper.statementToDto(null));
 
-        List<Statement> result = mapper.toStatementList(transactions);
-
-        assertEquals(2, result.size());
-        assertEquals(BigDecimal.valueOf(50), result.get(0).amount());
+        assertThat(thrown.getMessage()).contains("Statement can't be null");
     }
 
     @Test
-    void accountToDto_shouldMapAllFieldsCorrectly() {
-        Client client = new Client("Doe", "John");
-        client.setId("cli123");
-        Account account = new Account(client);
-        account.setId("acc123");
-        account.setBalance(BigDecimal.valueOf(500));
-        account.setDate(LocalDate.now());
-        account.setTransactions(List.of(
-                new Transaction(LocalDate.now(), BigDecimal.valueOf(100), BigDecimal.valueOf(600))));
+    @DisplayName("Should map List of Statement to List of StatementDto successfully")
+    void shouldMapListOfStatementToListOfStatementDtoSuccessfully() {
+        Statement statement1 = new Statement(LocalDate.of(2024, 3, 1), BigDecimal.valueOf(100), BigDecimal.valueOf(100));
+        Statement statement2 = new Statement(LocalDate.of(2024, 3, 5), BigDecimal.valueOf(-30), BigDecimal.valueOf(70));
+        List<Statement> statements = Arrays.asList(statement1, statement2);
 
-        AccountDto dto = mapper.accountToDto(account);
+        List<StatementDto> statementDtos = dtoMapper.toStatementDtoList(statements);
 
-        assertEquals("Doe", dto.client().lastname());
-        assertEquals(BigDecimal.valueOf(500), dto.balance());
-        assertFalse(dto.statements().isEmpty());
+        assertThat(statementDtos).isNotNull();
+        assertThat(statementDtos).hasSize(2);
+        assertThat(statementDtos.get(0).amount()).isEqualTo(BigDecimal.valueOf(100));
+        assertThat(statementDtos.get(1).balance()).isEqualTo(BigDecimal.valueOf(70));
     }
 
     @Test
-    void accountToDto_shouldThrowException_whenAccountIsNull() {
-        assertThrows(IllegalArgumentException.class, () -> mapper.accountToDto(null));
+    @DisplayName("Should return empty list when mapping null List of Statement")
+    void shouldReturnEmptyListWhenMappingNullListOfStatement() {
+        List<StatementDto> statementDtos = dtoMapper.toStatementDtoList(null);
+
+        assertThat(statementDtos).isNotNull();
+        assertThat(statementDtos).isEmpty();
     }
 
     @Test
-    void dtoToClient_shouldConvertCorrectly() {
-        ClientDto dto = new ClientDto("Doe", "John");
-        Client client = mapper.dtoToClient(dto);
+    @DisplayName("Should return empty list when mapping empty List of Statement")
+    void shouldReturnEmptyListWhenMappingEmptyListOfStatement() {
+        List<StatementDto> statementDtos = dtoMapper.toStatementDtoList(Collections.emptyList());
 
-        assertEquals("Doe", client.getLastName());
-        assertEquals("John", client.getFirstName());
+        assertThat(statementDtos).isNotNull();
+        assertThat(statementDtos).isEmpty();
     }
 
     @Test
-    void dtoToClient_shouldThrowException_whenDtoIsNull() {
-        assertThrows(IllegalArgumentException.class, () -> mapper.dtoToClient(null));
+    @DisplayName("Should map Client to ClientDto successfully")
+    void shouldMapClientToClientDtoSuccessfully() {
+        Client client = new Client("client789", "Smith", "Jane", LocalDate.of(2022, 12, 1));
+
+        ClientDto clientDto = dtoMapper.clientToDto(client);
+
+        assertThat(clientDto).isNotNull();
+        assertThat(clientDto.id()).isEqualTo("client789");
+        assertThat(clientDto.lastName()).isEqualTo("Smith");
+        assertThat(clientDto.firstName()).isEqualTo("Jane");
+        assertThat(clientDto.date()).isEqualTo(LocalDate.of(2022, 12, 1));
     }
 
     @Test
-    void clientToDto_shouldConvertCorrectly() {
-        Client client = new Client("Doe", "John");
-        ClientDto dto = mapper.clientToDto(client);
+    @DisplayName("Should throw IllegalArgumentException when mapping null Client to ClientDto")
+    void shouldThrowIllegalArgumentExceptionWhenMappingNullClientToClientDto() {
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
+                dtoMapper.clientToDto(null));
 
-        assertEquals("Doe", dto.lastname());
-        assertEquals("John", dto.firstname());
+        assertThat(thrown.getMessage()).contains("Client can't be null");
     }
 
-    @Test
-    void clientToDto_shouldThrowException_whenClientIsNull() {
-        assertThrows(IllegalArgumentException.class, () -> mapper.clientToDto(null));
+    private static Account getAccount() {
+        Client client = new Client("client123", "Doe", "John", LocalDate.of(2023, 1, 1));
+        Statement statement1 = new Statement(LocalDate.of(2024, 1, 10), BigDecimal.valueOf(50), BigDecimal.valueOf(150));
+        Statement statement2 = new Statement(LocalDate.of(2024, 1, 15), BigDecimal.valueOf(-20), BigDecimal.valueOf(130));
+        List<Statement> statements = Arrays.asList(statement1, statement2);
+        return new Account("account456", BigDecimal.valueOf(130), client, LocalDate.of(2023, 1, 5), statements);
     }
 }

@@ -1,5 +1,7 @@
 package com.sg.bank_account_api.dto;
 
-public record ClientDto (String lastname, String firstname) {
-    
+import java.time.LocalDate;
+
+public record ClientDto(String id, String lastName, String firstName, LocalDate date) {
+
 }
