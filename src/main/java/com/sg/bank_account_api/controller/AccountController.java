@@ -50,7 +50,7 @@ public class AccountController {
     @PostMapping("/deposit")
     public ResponseEntity<StatementDto> deposit(@RequestBody CreateTransactionDto dto) {
         StatementDto statement = service.performTransaction(dto, TransactionType.DEPOSIT);
-        return new ResponseEntity<>(statement, HttpStatus.CREATED);
+        return new ResponseEntity<>(statement, HttpStatus.OK);
     }
 
     /**
@@ -63,7 +63,7 @@ public class AccountController {
     @PostMapping("/withdraw")
     public ResponseEntity<StatementDto> withdraw(@RequestBody CreateTransactionDto dto) {
         StatementDto statement = service.performTransaction(dto, TransactionType.WITHDRAW);
-        return new ResponseEntity<>(statement, HttpStatus.CREATED);
+        return new ResponseEntity<>(statement, HttpStatus.OK);
     }
 
     /**

@@ -82,7 +82,7 @@ Effectue un dépôt sur un compte existant.
       "amount": 100.00
     }
 
-Réponse (201 Created) :
+Réponse (200 OK) :
 JSON
 
 
@@ -114,7 +114,7 @@ Effectue un retrait d'un compte existant.
       "amount": 50.00
     }
 
-Réponse (201 Created) :
+Réponse (200 OK) :
 JSON
 
 
