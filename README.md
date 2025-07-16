@@ -42,18 +42,20 @@ Créer un Compte
 
 Crée un nouveau compte bancaire pour un client.
 
+
     Point de terminaison : POST /account
 
     Corps de la requête :
     JSON
 
-{
-"lastname": "Doe",
-"firstname": "John"
-}
+    {
+      "lastName": "Doe",
+      "firstName": "John"
+    }
 
 Réponse (201 Created) :
 JSON
+
 
     {
       "accountId": "someAccountId",
@@ -68,24 +70,26 @@ Déposer des Fonds
 
 Effectue un dépôt sur un compte existant.
 
+
     Point de terminaison : POST /account/deposit
 
     Corps de la requête :
     JSON
 
-{
-"clientId": "someClientId",
-"accountId": "someAccountId",
-"amount": 100.00
-}
+    {
+      "clientId": "someClientId",
+      "accountId": "someAccountId",
+      "amount": 100.00
+    }
 
 Réponse (201 Created) :
 JSON
 
+
     {
+      "date": "2023-07-15",
       "amount": 100.00,
-      "balance": 100.00,
-      "date": "2023-07-15"
+      "balance": 100.00
     }
 
     Erreurs possibles :
@@ -98,24 +102,26 @@ Retirer des Fonds
 
 Effectue un retrait d'un compte existant.
 
+
     Point de terminaison : POST /account/withdraw
 
     Corps de la requête :
     JSON
 
-{
-"clientId": "someClientId",
-"accountId": "someAccountId",
-"amount": 50.00
-}
+    {
+      "clientId": "someClientId",
+      "accountId": "someAccountId",
+      "amount": 50.00
+    }
 
 Réponse (201 Created) :
 JSON
 
+
     {
+      "date": "2023-07-15",
       "amount": -50.00,
-      "balance": 50.00,
-      "date": "2023-07-15"
+      "balance": 50.00
     }
 
     Erreurs possibles :
@@ -128,6 +134,7 @@ Obtenir le Relevé de Compte
 
 Récupère les détails et l'historique des transactions pour un compte spécifique.
 
+
     Point de terminaison : GET /account/statement/{accountId}
 
     Variable de chemin : accountId (String) - L'identifiant du compte.
@@ -137,8 +144,8 @@ Récupère les détails et l'historique des transactions pour un compte spécifi
 
     {
       "client": {
-        "lastname": "Doe",
-        "firstname": "John"
+        "lastName": "Doe",
+        "firstName": "John"
       },
       "balance": 50.00,
       "date": "2023-07-15",
@@ -190,44 +197,37 @@ Client
 
 Représente un client bancaire.
 
-    id : Identifiant unique du client.
 
-    lastName : Nom de famille du client.
-
-    firstName : Prénom du client.
-
-    date : Date de création du client.
+    id : Identifiant unique du client (String).
+    lastName : Nom de famille du client (String).
+    firstName : Prénom du client (String).
+    date : Date de création du client (LocalDate).
 
 Account
 
 Représente un compte bancaire.
 
-    id : Identifiant unique du compte.
 
-    balance : Solde actuel du compte.
-
-    client : Référence au client associé.
-
-    date : Date de création du compte.
-
-    transactions : Liste des transactions effectuées sur le compte.
+    id : Identifiant unique du compte (String).
+    balance : Solde actuel du compte (BigDecimal).
+    client : Référence au client associé (Client).
+    date : Date de création du compte (LocalDate).
+    transactions : Liste des transactions effectuées sur le compte (List<Statement>).
 
 Transaction
 
 Représente une transaction financière (dépôt ou retrait).
 
-    amount : Montant de la transaction (positif pour un dépôt, négatif pour un retrait).
 
-    balance : Solde du compte après la transaction.
-
-    date : Date de la transaction.
+    amount : Montant de la transaction (BigDecimal, positif pour un dépôt, négatif pour un retrait).
+    balance : Solde du compte après la transaction (BigDecimal).
+    date : Date de la transaction (LocalDate).
 
 Statement
 
 Représente un enregistrement d'une transaction dans le relevé de compte.
 
-    date : Date de la transaction.
 
-    amount : Montant de la transaction.
-
-    balance : Solde après la transaction.
+    date : Date de la transaction (LocalDate).
+    amount : Montant de la transaction (BigDecimal).
+    balance : Solde après la transaction (BigDecimal).
