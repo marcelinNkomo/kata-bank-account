@@ -11,7 +11,7 @@ Ce projet est une API REST simple pour gérer un compte bancaire : dépôts, ret
 
 ### cloner le projet : 
 ```bash 
-git clone https://github.com/marcelinNkomo/kata-bank-account.git
+git clone https://github.com/mnkomo/kata-bank-account.git
 ```
 ### se positionner sur le répertoire du projet : 
 ```bash 
