@@ -1,5 +1,11 @@
 package com.sg.bank_account_api.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+
+import org.springframework.stereotype.Service;
+
 import com.sg.bank_account_api.dto.CreateClientDto;
 import com.sg.bank_account_api.dto.CreateTransactionDto;
 import com.sg.bank_account_api.dto.CreatedAccountDto;
@@ -12,12 +18,8 @@ import com.sg.bank_account_api.model.Client;
 import com.sg.bank_account_api.model.Statement;
 import com.sg.bank_account_api.model.TransactionType;
 import com.sg.bank_account_api.repository.AccountRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.ArrayList;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Classe qui gèrer toute la logique associée à un compte
@@ -37,7 +39,8 @@ public final class AccountService implements IAccountService {
         Client createdClient = clientService.createClient(createClientDto);
 
         // Création du compte pour le client
-        Account accountToCreate = new Account(null, BigDecimal.ZERO, createdClient, LocalDate.now(), new ArrayList<>());
+        Account accountToCreate = new Account(null, BigDecimal.ZERO, createdClient, LocalDateTime.now(),
+                new ArrayList<>());
         Account createdAccount = accountRepository.save(accountToCreate);
 
         return new CreatedAccountDto(createdAccount.id(), createdClient.id());
@@ -105,13 +108,13 @@ public final class AccountService implements IAccountService {
      * @return
      */
     private Statement createTransactionAndUpdateAccount(TransactionType type, BigDecimal amount,
-                                                        Account existingAccount) {
+            Account existingAccount) {
         // si c'est un retrait, le montant devient gégatif
         BigDecimal transactionAmount = TransactionType.WITHDRAW.equals(type) ? amount.negate() : amount;
         // on met à jour solde
         BigDecimal newBalance = existingAccount.balance().add(transactionAmount);
         // création de la transaction
-        Statement statement = new Statement(LocalDate.now(), transactionAmount, newBalance);
+        Statement statement = new Statement(LocalDateTime.now(), transactionAmount, newBalance);
 
         // on met à jour le compte avec le nouveau solde et la nouvelle transaction
         existingAccount.statements().add(statement);
@@ -143,5 +146,3 @@ public final class AccountService implements IAccountService {
         }
     }
 }
-
-

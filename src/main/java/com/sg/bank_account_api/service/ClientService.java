@@ -1,15 +1,17 @@
 package com.sg.bank_account_api.service;
 
+import static org.apache.logging.log4j.util.Strings.isBlank;
+
+import java.time.LocalDateTime;
+
+import org.springframework.stereotype.Service;
+
 import com.sg.bank_account_api.dto.CreateClientDto;
 import com.sg.bank_account_api.exceptions.AmountException;
 import com.sg.bank_account_api.model.Client;
 import com.sg.bank_account_api.repository.ClientRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-
-import static org.apache.logging.log4j.util.Strings.isBlank;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +22,7 @@ public final class ClientService implements IClientService {
     @Override
     public Client createClient(CreateClientDto createClientDto) {
         validate(createClientDto);
-        Client newClient = new Client(null, createClientDto.lastname(), createClientDto.firstname(), LocalDate.now());
+        Client newClient = new Client(null, createClientDto.lastname(), createClientDto.firstname(), LocalDateTime.now());
         return clientRepository.save(newClient);
     }
 

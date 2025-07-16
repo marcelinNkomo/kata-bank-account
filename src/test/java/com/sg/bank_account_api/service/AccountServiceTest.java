@@ -1,5 +1,27 @@
 package com.sg.bank_account_api.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.sg.bank_account_api.dto.CreateClientDto;
 import com.sg.bank_account_api.dto.CreateTransactionDto;
 import com.sg.bank_account_api.dto.CreatedAccountDto;
@@ -11,26 +33,6 @@ import com.sg.bank_account_api.model.Account;
 import com.sg.bank_account_api.model.Client;
 import com.sg.bank_account_api.model.TransactionType;
 import com.sg.bank_account_api.repository.AccountRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
@@ -49,8 +51,8 @@ class AccountServiceTest {
 
     @BeforeEach
     void setUp() {
-        testClient = new Client("client123", "Doe", "John", LocalDate.now());
-        testAccount = new Account("account456", BigDecimal.ZERO, testClient, LocalDate.now(), new ArrayList<>());
+        testClient = new Client("client123", "Doe", "John", LocalDateTime.now());
+        testAccount = new Account("account456", BigDecimal.ZERO, testClient, LocalDateTime.now(), new ArrayList<>());
         createClientDto = new CreateClientDto("Doe", "John");
     }
 
@@ -74,7 +76,8 @@ class AccountServiceTest {
     void shouldPerformDepositSuccessfully() {
         BigDecimal initialBalance = BigDecimal.valueOf(100);
         BigDecimal depositAmount = BigDecimal.valueOf(50);
-        Account accountWithBalance = new Account("account456", initialBalance, testClient, LocalDate.now(), new ArrayList<>());
+        Account accountWithBalance = new Account("account456", initialBalance, testClient, LocalDateTime.now(),
+                new ArrayList<>());
         CreateTransactionDto depositDto = new CreateTransactionDto("client123", "account456", depositAmount);
 
         when(accountRepository.findById("account456")).thenReturn(Optional.of(accountWithBalance));
@@ -90,7 +93,8 @@ class AccountServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.amount()).isEqualTo(depositAmount);
         assertThat(result.balance()).isEqualTo(initialBalance.add(depositAmount));
-        assertThat(result.date()).isEqualTo(LocalDate.now());
+        assertThat(result.date().truncatedTo(ChronoUnit.SECONDS))
+                .isEqualTo(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         verify(accountRepository, times(1)).findById("account456");
         verify(accountRepository, times(1)).save(any(Account.class));
     }
@@ -100,7 +104,8 @@ class AccountServiceTest {
     void shouldPerformWithdrawalSuccessfully() {
         BigDecimal initialBalance = BigDecimal.valueOf(100);
         BigDecimal withdrawalAmount = BigDecimal.valueOf(50);
-        Account accountWithBalance = new Account("account456", initialBalance, testClient, LocalDate.now(), new ArrayList<>());
+        Account accountWithBalance = new Account("account456", initialBalance, testClient, LocalDateTime.now(),
+                new ArrayList<>());
         CreateTransactionDto withdrawalDto = new CreateTransactionDto("client123", "account456", withdrawalAmount);
 
         when(accountRepository.findById("account456")).thenReturn(Optional.of(accountWithBalance));
@@ -116,7 +121,7 @@ class AccountServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.amount()).isEqualTo(withdrawalAmount.negate());
         assertThat(result.balance()).isEqualTo(initialBalance.subtract(withdrawalAmount));
-        assertThat(result.date()).isEqualTo(LocalDate.now());
+        assertThat(result.date().truncatedTo(ChronoUnit.SECONDS)).isEqualTo(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         verify(accountRepository, times(1)).findById("account456");
         verify(accountRepository, times(1)).save(any(Account.class));
     }
@@ -127,8 +132,8 @@ class AccountServiceTest {
         CreateTransactionDto dto = new CreateTransactionDto("client123", "nonExistentAccount", BigDecimal.TEN);
         when(accountRepository.findById("nonExistentAccount")).thenReturn(Optional.empty());
 
-        AccountNotFoundException thrown = assertThrows(AccountNotFoundException.class, () ->
-                accountService.performTransaction(dto, TransactionType.DEPOSIT));
+        AccountNotFoundException thrown = assertThrows(AccountNotFoundException.class,
+                () -> accountService.performTransaction(dto, TransactionType.DEPOSIT));
 
         assertThat(thrown.getMessage()).contains("Account not found for ID : nonExistentAccount");
         verify(accountRepository, times(1)).findById("nonExistentAccount");
@@ -141,8 +146,8 @@ class AccountServiceTest {
         CreateTransactionDto depositDto = new CreateTransactionDto("client123", "account456", BigDecimal.valueOf(-10));
         when(accountRepository.findById("account456")).thenReturn(Optional.of(testAccount));
 
-        AmountException thrown = assertThrows(AmountException.class, () ->
-                accountService.performTransaction(depositDto, TransactionType.DEPOSIT));
+        AmountException thrown = assertThrows(AmountException.class,
+                () -> accountService.performTransaction(depositDto, TransactionType.DEPOSIT));
 
         assertThat(thrown.getMessage()).contains("Amount must be > 0");
         verify(accountRepository, times(1)).findById("account456");
@@ -155,8 +160,8 @@ class AccountServiceTest {
         CreateTransactionDto depositDto = new CreateTransactionDto("client123", "account456", BigDecimal.ZERO);
         when(accountRepository.findById("account456")).thenReturn(Optional.of(testAccount));
 
-        AmountException thrown = assertThrows(AmountException.class, () ->
-                accountService.performTransaction(depositDto, TransactionType.DEPOSIT));
+        AmountException thrown = assertThrows(AmountException.class,
+                () -> accountService.performTransaction(depositDto, TransactionType.DEPOSIT));
 
         assertThat(thrown.getMessage()).contains("Amount must be > 0");
         verify(accountRepository, times(1)).findById("account456");
@@ -168,15 +173,17 @@ class AccountServiceTest {
     void shouldThrowAmountExceptionForWithdrawalExceedingBalance() {
         BigDecimal initialBalance = BigDecimal.valueOf(50);
         BigDecimal withdrawalAmount = BigDecimal.valueOf(100);
-        Account accountWithBalance = new Account("account456", initialBalance, testClient, LocalDate.now(), new ArrayList<>());
+        Account accountWithBalance = new Account("account456", initialBalance, testClient, LocalDateTime.now(),
+                new ArrayList<>());
         CreateTransactionDto withdrawalDto = new CreateTransactionDto("client123", "account456", withdrawalAmount);
 
         when(accountRepository.findById("account456")).thenReturn(Optional.of(accountWithBalance));
 
-        AmountException thrown = assertThrows(AmountException.class, () ->
-                accountService.performTransaction(withdrawalDto, TransactionType.WITHDRAW));
+        AmountException thrown = assertThrows(AmountException.class,
+                () -> accountService.performTransaction(withdrawalDto, TransactionType.WITHDRAW));
 
-        assertThat(thrown.getMessage()).contains("Amount must be > 0 and must be <= balance in the case of a withdrawal");
+        assertThat(thrown.getMessage())
+                .contains("Amount must be > 0 and must be <= balance in the case of a withdrawal");
         verify(accountRepository, times(1)).findById("account456");
         verify(accountRepository, never()).save(any(Account.class));
     }
@@ -184,14 +191,15 @@ class AccountServiceTest {
     @Test
     @DisplayName("Should throw ClientNotFoundException when client ID does not match account's client")
     void shouldThrowClientNotFoundExceptionWhenClientDoesNotMatchAccount() {
-        Client anotherClient = new Client("anotherClient", "Smith", "Jane", LocalDate.now());
-        Account accountWithAnotherClient = new Account("account456", BigDecimal.TEN, anotherClient, LocalDate.now(), new ArrayList<>());
+        Client anotherClient = new Client("anotherClient", "Smith", "Jane", LocalDateTime.now());
+        Account accountWithAnotherClient = new Account("account456", BigDecimal.TEN, anotherClient, LocalDateTime.now(),
+                new ArrayList<>());
         CreateTransactionDto dto = new CreateTransactionDto("client123", "account456", BigDecimal.TEN);
 
         when(accountRepository.findById("account456")).thenReturn(Optional.of(accountWithAnotherClient));
 
-        ClientNotFoundException thrown = assertThrows(ClientNotFoundException.class, () ->
-                accountService.performTransaction(dto, TransactionType.DEPOSIT));
+        ClientNotFoundException thrown = assertThrows(ClientNotFoundException.class,
+                () -> accountService.performTransaction(dto, TransactionType.DEPOSIT));
 
         assertThat(thrown.getMessage()).contains("Client with id client123 is not associated with account account456");
         verify(accountRepository, times(1)).findById("account456");
@@ -214,8 +222,8 @@ class AccountServiceTest {
     void shouldThrowAccountNotFoundExceptionWhenGetAccountByIdNotFound() {
         when(accountRepository.findById("nonExistentAccount")).thenReturn(Optional.empty());
 
-        AccountNotFoundException thrown = assertThrows(AccountNotFoundException.class, () ->
-                accountService.getAccountById("nonExistentAccount"));
+        AccountNotFoundException thrown = assertThrows(AccountNotFoundException.class,
+                () -> accountService.getAccountById("nonExistentAccount"));
 
         assertThat(thrown.getMessage()).contains("Account not found for ID : nonExistentAccount");
         verify(accountRepository, times(1)).findById("nonExistentAccount");
@@ -224,7 +232,8 @@ class AccountServiceTest {
     @Test
     @DisplayName("Should update account successfully")
     void shouldUpdateAccountSuccessfully() {
-        Account updatedAccount = new Account("account456", BigDecimal.valueOf(200), testClient, LocalDate.now(), new ArrayList<>());
+        Account updatedAccount = new Account("account456", BigDecimal.valueOf(200), testClient, LocalDateTime.now(),
+                new ArrayList<>());
         when(accountRepository.save(any(Account.class))).thenReturn(updatedAccount);
 
         Account result = accountService.updateAcount(updatedAccount);

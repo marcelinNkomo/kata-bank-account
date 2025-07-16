@@ -49,8 +49,8 @@ Crée un nouveau compte bancaire pour un client.
     JSON
 
     {
-      "lastName": "Doe",
-      "firstName": "John"
+      "lastname": "Doe",
+      "firstname": "John"
     }
 
 Réponse (201 Created) :
@@ -144,8 +144,8 @@ Récupère les détails et l'historique des transactions pour un compte spécifi
 
     {
       "client": {
-        "lastName": "Doe",
-        "firstName": "John"
+        "lastname": "Doe",
+        "firstname": "John"
       },
       "balance": 50.00,
       "date": "2023-07-15",
@@ -199,8 +199,8 @@ Représente un client bancaire.
 
 
     id : Identifiant unique du client (String).
-    lastName : Nom de famille du client (String).
-    firstName : Prénom du client (String).
+    lastname : Nom de famille du client (String).
+    firstname : Prénom du client (String).
     date : Date de création du client (LocalDate).
 
 Account

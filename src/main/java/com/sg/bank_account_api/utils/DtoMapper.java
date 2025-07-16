@@ -38,7 +38,7 @@ public class DtoMapper {
 
     public ClientDto clientToDto(Client client) {
         validate(client, Client.class);
-        return new ClientDto(client.id(), client.lastName(), client.firstName(), client.date());
+        return new ClientDto(client.id(), client.lastname(), client.firstname(), client.date());
     }
 
     private void validate(Object obj, Class<?> type) {
